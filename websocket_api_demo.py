@@ -352,10 +352,10 @@ class DTraderWebSocketClient:
 
 async def main():
     # 服务器URL
-    url = "ws://localhost:8080/ws"  # 替换为实际的服务器地址
+    url = "ws://45.152.65.97:8080/ws"  # 替换为实际的服务器地址
     
     # 认证令牌
-    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InNvb2JveSIsImV4cCI6MTc4MDE5MTMyNSwiaWF0IjoxNzQ5MDg3MzI1fQ.qwYExSfL2qz5G4u6rhXxPYr3wkezmwOCYb6OfL3tVZk"  # 替换为实际的认证令牌
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InNvb2JveSIsImV4cCI6MTc4MDU0Nzk2MCwiaWF0IjoxNzQ5NDQzOTYwfQ.XghmQtFLVdY9NFAMWGSUkTqpe0NNcKLQVljN0cQ62CA"  # 替换为实际的认证令牌
     
     # 创建客户端
     client = DTraderWebSocketClient(url, token)
