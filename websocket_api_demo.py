@@ -182,7 +182,7 @@ class DTraderWebSocketClient:
             unsub_response = json.loads(response)
             logger.info(f"取消订阅响应: {unsub_response}")
             
-            if "成功" in str(unsub_response):
+            if "取消订阅成功" in str(unsub_response):
                 if stock_code in self.subscribed_symbols:
                     self.subscribed_symbols.remove(stock_code)
                 return True
@@ -212,7 +212,7 @@ class DTraderWebSocketClient:
             unsub_response = json.loads(response)
             logger.info(f"批量取消订阅响应: {unsub_response}")
             
-            if "成功" in str(unsub_response):
+            if "批量取消订阅完成" in str(unsub_response):
                 for code in stock_codes:
                     if code in self.subscribed_symbols:
                         self.subscribed_symbols.remove(code)
@@ -243,7 +243,7 @@ class DTraderWebSocketClient:
             reset_response = json.loads(response)
             logger.info(f"重置订阅响应: {reset_response}")
             
-            if "成功" in str(reset_response):
+            if "重置订阅完成" in str(reset_response):
                 self.subscribed_symbols.clear()
                 for sub in subscriptions:
                     self.subscribed_symbols.add(sub["stock_code"])
