@@ -402,7 +402,7 @@ async def main():
     url = "ws://45.152.65.97:8080/ws"  # 替换为实际的服务器地址
     
     # 认证令牌
-    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InNvb2JveSIsImV4cCI6MTc4MDU0Nzk2MCwiaWF0IjoxNzQ5NDQzOTYwfQ.XghmQtFLVdY9NFAMWGSUkTqpe0NNcKLQVljN0cQ62CA"  # 替换为实际的认证令牌
+    token = "you-token"  # 替换为实际的认证令牌
     
     # 创建客户端
     client = DTraderWebSocketClient(url, token)
