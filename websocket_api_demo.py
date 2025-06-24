@@ -104,7 +104,8 @@ class DTraderWebSocketClient:
                 "data": {
                     "stock_code": stock_code,
                     "data_types": data_types
-                }
+                },
+                "timestamp": int(time.time())
             }
             await self.websocket.send(json.dumps(subscribe_message))
             response = await self.websocket.recv()
@@ -132,7 +133,8 @@ class DTraderWebSocketClient:
                 "type": "batch_subscribe",
                 "data": {
                     "subscriptions": subscriptions
-                }
+                },
+                "timestamp": int(time.time())
             }
             await self.websocket.send(json.dumps(subscribe_message))
             response = await self.websocket.recv()
@@ -140,9 +142,20 @@ class DTraderWebSocketClient:
             logger.info(f"批量订阅响应: {sub_response}")
             
             if sub_response.get("type") == "batch_subscribe":
-                for sub in subscriptions:
-                    self.subscribed_symbols.add(sub["stock_code"])
-                return True
+                # 处理批量订阅响应
+                data = sub_response.get("data", {})
+                success_list = data.get("success_list", [])
+                error_list = data.get("error_list", [])
+                
+                # 添加成功订阅的股票到本地记录
+                for success_item in success_list:
+                    self.subscribed_symbols.add(success_item["stock_code"])
+                
+                # 记录失败的订阅
+                for error_item in error_list:
+                    logger.error(f"订阅失败: {error_item}")
+                
+                return len(error_list) == 0  # 如果没有错误则返回True
             else:
                 logger.error(f"批量订阅失败: {sub_response}")
                 return False
@@ -150,7 +163,7 @@ class DTraderWebSocketClient:
             logger.error(f"批量订阅过程中出错: {e}")
             return False
 
-    async def unsubscribe(self, stock_code: str, data_types: List[int]) -> bool:
+    async def unsubscribe(self, stock_code: str) -> bool:
         """取消订阅单个股票代码"""
         if not self.authenticated:
             logger.error("未认证，无法取消订阅")
@@ -160,9 +173,9 @@ class DTraderWebSocketClient:
             unsubscribe_message = {
                 "type": "unsubscribe",
                 "data": {
-                    "stock_code": stock_code,
-                    "data_types": data_types
-                }
+                    "stock_code": stock_code
+                },
+                "timestamp": int(time.time())
             }
             await self.websocket.send(json.dumps(unsubscribe_message))
             response = await self.websocket.recv()
@@ -191,7 +204,8 @@ class DTraderWebSocketClient:
                 "type": "batch_unsubscribe",
                 "data": {
                     "stock_codes": stock_codes
-                }
+                },
+                "timestamp": int(time.time())
             }
             await self.websocket.send(json.dumps(unsubscribe_message))
             response = await self.websocket.recv()
@@ -277,22 +291,55 @@ class DTraderWebSocketClient:
             market_data = data.get("data", {})
             
             if data_type == 4:  # 逐笔成交
-                logger.info(f"收到 {stock_code} 的逐笔成交数据: 价格={market_data.get('Price')}, 时间={market_data.get('Time')}, 数量={market_data.get('Volume')}")
+                # 处理数组格式的数据
+                if isinstance(market_data, list):
+                    for data_item in market_data:
+                        logger.info(f"收到 {stock_code} 的逐笔成交数据: 价格={data_item.get('Price')}, 时间={data_item.get('Time')}, 数量={data_item.get('Volume')}, 订单包ID={data_item.get('OrderPackId')}")
+                else:
+                    # 兼容旧格式（单个对象）
+                    logger.info(f"收到 {stock_code} 的逐笔成交数据: 价格={market_data.get('Price')}, 时间={market_data.get('Time')}, 数量={market_data.get('Volume')}")
+            elif data_type == 8:  # 逐笔成交明细
+                # 处理数组格式的数据
+                if isinstance(market_data, list):
+                    for data_item in market_data:
+                        logger.info(f"收到 {stock_code} 的逐笔成交明细数据: 买入价格={data_item.get('BuyPrice')}, 卖出价格={data_item.get('SellPrice')}, 买入数量={data_item.get('BuyVol')}, 卖出数量={data_item.get('SellVol')}")
+                else:
+                    # 兼容旧格式（单个对象）
+                    logger.info(f"收到 {stock_code} 的逐笔成交明细数据: 买入价格={market_data.get('BuyPrice')}, 卖出价格={market_data.get('SellPrice')}, 买入数量={market_data.get('BuyVol')}, 卖出数量={market_data.get('SellVol')}")
             elif data_type == 14:  # 逐笔委托
-                type_codes = market_data.get('Type', [])
-                type_desc = ""
-                if len(type_codes) >= 2:
-                    if type_codes[0] == 66:
-                        type_desc = "买入"
-                    elif type_codes[0] == 83:
-                        type_desc = "卖出"
-                        
-                    if type_codes[1] == 65:
-                        type_desc += "报单"
-                    elif type_codes[1] == 68:
-                        type_desc += "撤单"
-                        
-                logger.info(f"收到 {stock_code} 的逐笔委托数据: 时间={market_data.get('DateTime')}, 价格={market_data.get('Price')}, 类型={type_desc}, 数量={market_data.get('Volume')}")
+                # 处理数组格式的数据
+                if isinstance(market_data, list):
+                    for data_item in market_data:
+                        type_codes = data_item.get('Type', [])
+                        type_desc = ""
+                        if len(type_codes) >= 2:
+                            if type_codes[0] == 66:
+                                type_desc = "买入"
+                            elif type_codes[0] == 83:
+                                type_desc = "卖出"
+                                
+                            if type_codes[1] == 65:
+                                type_desc += "报单"
+                            elif type_codes[1] == 68:
+                                type_desc += "撤单"
+                                
+                        logger.info(f"收到 {stock_code} 的逐笔委托数据: 时间={data_item.get('DateTime')}, 价格={data_item.get('Price')}, 类型={type_desc}, 数量={data_item.get('Volume')}")
+                else:
+                    # 兼容旧格式（单个对象）
+                    type_codes = market_data.get('Type', [])
+                    type_desc = ""
+                    if len(type_codes) >= 2:
+                        if type_codes[0] == 66:
+                            type_desc = "买入"
+                        elif type_codes[0] == 83:
+                            type_desc = "卖出"
+                            
+                        if type_codes[1] == 65:
+                            type_desc += "报单"
+                        elif type_codes[1] == 68:
+                            type_desc += "撤单"
+                            
+                    logger.info(f"收到 {stock_code} 的逐笔委托数据: 时间={market_data.get('DateTime')}, 价格={market_data.get('Price')}, 类型={type_desc}, 数量={market_data.get('Volume')}")
         elif msg_type == "pong":
             # 心跳响应
             logger.debug("收到心跳响应")
